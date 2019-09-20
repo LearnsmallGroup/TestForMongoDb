@@ -3,6 +3,7 @@ package com.example.mongdb.mongdb.service.impl;
 import com.example.mongdb.mongdb.dao.UserRepository;
 import com.example.mongdb.mongdb.model.entity.User;
 import com.example.mongdb.mongdb.service.IUserService;
+import com.mongodb.client.MongoCollection;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -43,8 +44,9 @@ public class UserServiceImpl implements IUserService {
     @Transactional(rollbackFor = Throwable.class)
     @Override
     public void saveListUser(List<User> userList) {
-        for(User tmp :userList){
-            mongoTemplate.save(tmp);
-        }
+//        for(User tmp :userList){
+//            mongoTemplate.save(tmp);
+//        }
+        mongoTemplate.insertAll(userList);
     }
 }
