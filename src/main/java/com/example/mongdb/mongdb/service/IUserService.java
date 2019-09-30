@@ -9,7 +9,7 @@ import java.util.List;
  * 查询Service
  * @create by Kellach 2019年9月20日
  */
-public interface IUserService extends IBaseService<User> {
+public interface IUserService extends IBaseMDBService<User> {
 
     /**
      * 获取所有用户
