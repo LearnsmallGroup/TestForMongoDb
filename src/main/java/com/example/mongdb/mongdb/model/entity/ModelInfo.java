@@ -38,5 +38,9 @@ public class ModelInfo implements Serializable {
      * workbook 内容
      */
     private String workBookContentId;
+    /**
+     * sheetJson
+     */
+    private String sheetJson;
 
 }

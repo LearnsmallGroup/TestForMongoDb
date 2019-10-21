@@ -14,6 +14,7 @@ import java.io.Serializable;
 public class BaseObj implements Serializable {
 
     private String xxx;
+
     private String code;
 
     private String name;

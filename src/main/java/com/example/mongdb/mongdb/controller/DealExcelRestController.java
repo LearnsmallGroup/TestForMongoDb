@@ -1,5 +1,6 @@
 package com.example.mongdb.mongdb.controller;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.example.mongdb.mongdb.model.entity.BaseObj;
@@ -17,9 +18,9 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.multipart.support.StandardMultipartHttpServletRequest;
 
 
-import javax.json.JsonArray;
-import javax.json.JsonArrayBuilder;
-import javax.json.JsonObject;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.util.*;
 
@@ -43,9 +44,25 @@ public class DealExcelRestController {
     public void inputExcelModel(StandardMultipartHttpServletRequest request) throws Exception{
         Map<String, MultipartFile> fileMap = request.getFileMap();
         for(Map.Entry<String,MultipartFile> tmp:fileMap.entrySet()){
-            String fileName = tmp.getKey();
+            String filename = tmp.getValue().getOriginalFilename();
+            String fileCode = filename.substring(0,filename.lastIndexOf("."));
             MultipartFile file = tmp.getValue();
-            modelInfoService.dealModelInfoExcel(file);
+            modelInfoService.dealModelInfoExcel(file,fileCode);
+        }
+    }
+
+    /**
+     * 文件导入 By Sheet
+     * @param request
+     */
+    @PostMapping(value = "/uploadFileBySheet")
+    public void inputExcelModelBySheet(StandardMultipartHttpServletRequest request) throws Exception{
+        Map<String, MultipartFile> fileMap = request.getFileMap();
+        for(Map.Entry<String,MultipartFile> tmp:fileMap.entrySet()){
+            String filename = tmp.getValue().getOriginalFilename();
+            String fileCode = filename.substring(0,filename.lastIndexOf("."));
+            MultipartFile file = tmp.getValue();
+            modelInfoService.saveExcelBySheet(file,fileCode);
         }
     }
 
@@ -54,64 +71,111 @@ public class DealExcelRestController {
      * @param code
      * @return
      */
+    @GetMapping(value = "/getModelSheetFile/{code}")
+    public Map<String,Object> getStringSheetJson(@PathVariable("code") String code) throws Exception {
+        Map<String,Object> map = new HashMap<>();
+        Query query = new Query();
+        query.addCriteria(Criteria.where("modelCode").is(code));
+        List<ModelInfo> mlist = modelInfoService.getByQuery(query);
+        Workbook workbook = new Workbook();
+        IWorksheets worksheets = workbook.getWorksheets();
+        int i = 0;
+        for(ModelInfo mfo : mlist){
+            if(i>0) {
+                worksheets.add();
+            }
+            IWorksheet nsheet = workbook.getWorksheets().get(i++);
+            nsheet.fromJson(mfo.getSheetJson());
+        }
+//        IWorksheet nsheet = workbook.getWorksheets().get(0);
+//        System.out.println(mlist.get(1).getSheetJson());
+//        nsheet.fromJson(mlist.get(7).getSheetJson());
+        Object parse = JSON.parse(workbook.toJson());
+        map.put("model",parse);
+        return map;
+    }
+
+
+
+    /**
+     * 获取模板的Excel文件
+     * @param code
+     * @return
+     */
     @GetMapping(value = "/getModelFile/{code}")
-    public Map<String,Object> getStringJson(@PathVariable("code") String code){
+    public Map<String,Object> getStringJson(@PathVariable("code") String code) throws Exception{
         Map<String,Object> map = new HashMap<>();
         Query query = new Query();
         query.addCriteria(Criteria.where("modelCode").is(code));
         ModelInfo oneByQuery = modelInfoService.getOneByQuery(query);
         InputStream file = modelInfoService.getFileById(oneByQuery.getWorkBookContentId());
         Workbook workbook = new Workbook();
-//        XlsxOpenOptions options = new XlsxOpenOptions();
-//        options.setImportFlags(EnumSet.of(ImportFlags.Data,
-//                ImportFlags.Formulas,
-//                ImportFlags.Table,
-//                ImportFlags.MergeArea,
-//                ImportFlags.Style,
-//                ImportFlags.ConditionalFormatting,
-//                ImportFlags.DataValidation,
-//                ImportFlags.PivotTable,
-//                ImportFlags.Shapes));
-//        workbook.open(file,options);
+////        XlsxOpenOptions options = new XlsxOpenOptions();
+////        options.setImportFlags(EnumSet.of(ImportFlags.Data,
+////                ImportFlags.Formulas,
+////                ImportFlags.Table,
+////                ImportFlags.MergeArea,
+////                ImportFlags.Style,
+////                ImportFlags.ConditionalFormatting,
+////                ImportFlags.DataValidation,
+////                ImportFlags.PivotTable,
+////                ImportFlags.Shapes));
+////        workbook.open(file,options);
         String str = null;
         try{
             str = IOUtils.toString(file,"UTF-8");
         }catch (Exception e){
             e.printStackTrace();
         }
-        workbook.fromJson(str);
-        IWorksheets worksheets = workbook.getWorksheets();
-        int count = worksheets.getCount();
-        for(int i = 0;i<count;i++){
-            IWorksheet sheet = worksheets.get(i);
-            ITables tables = sheet.getTables();
-            for(ITable tb:tables){
-                String tname = tb.getName();
-                System.out.println(tname);
-                Object[][] initData = this.getInitData();
-//                JSONArray jsonArray = this.getJsonArray();
-//                tb.getDataRange().setValue(jsonArray.toJSONString());
-//                tb.setComment(jsonArray.toJSONString());
-
-//                tb.getDataRange()..setValue(jsonArray.toJSONString());
-                //组装后台数据集
-//                for(Object obj:initData){
-//                tb.setShowHeaders(false);
-//                int c = 0;
-//                for(Object[] obj:initData){
-//                    tb.getRows().add(c).getRange().setValue(obj);
-//                    c++;
-//                }
-
-            }
-            String name = sheet.getName();
-//            if(!"Summary".equals(name)){
-//                sheet.delete();
+//        workbook.fromJson(str);
+//        IWorksheets worksheets = workbook.getWorksheets();
+//        int count = worksheets.getCount();
+//        for(int i = 0;i<count;i++){
+//            IWorksheet sheet = worksheets.get(i);
+//            ITables tables = sheet.getTables();
+//            for(ITable tb:tables){
+//                String tname = tb.getName();
+//                System.out.println(tname);
+//                Object[][] initData = this.getInitData();
+////                JSONArray jsonArray = this.getJsonArray();
+////                tb.getDataRange().setValue(jsonArray.toJSONString());
+////                tb.setComment(jsonArray.toJSONString());
+//
+////                tb.getDataRange()..setValue(jsonArray.toJSONString());
+//                //组装后台数据集
+////                for(Object obj:initData){
+////                tb.setShowHeaders(false);
+////                int c = 0;
+////                for(Object[] obj:initData){
+////                    tb.getRows().add(c).getRange().setValue(obj);
+////                    c++;
+////                }
+//
 //            }
-        }
-        String fileJson = workbook.toJson();
+//            String name = sheet.getName();
+////            if(!"Summary".equals(name)){
+////                sheet.delete();
+////            }
+//        }
+//
+//
+////        String fileJson = workbook.toJson();
+//
         map.put("source",this.packageData());
-        map.put("model",fileJson);
+        Object parse = JSON.parse(str);
+        map.put("model",parse);
+//        System.out.println(fileJson);
+        System.out.println("数据大小："+map.size());
+
+
+        //测试文件
+//        File file = new File("C:\\Users\\nitam\\Desktop\\test\\aaaa\\file.ssjson");
+//        InputStream fileInput = new FileInputStream(file);
+//        String workbook = IOUtils.toString(fileInput, "utf-8");
+////        Object parse = JSON.parse(workbook.toJson());
+////        Object parse = JSON.parse(workbook);
+//        Object parse = JSONObject.toJSON(workbook);
+//        map.put("model",parse);
         return map;
     }
 
@@ -172,6 +236,15 @@ public class DealExcelRestController {
                {"","code","哈哈阿斯蒂芬",12123.213}
        };
        return data;
+    }
+
+    /**
+     * 获取数据
+     * @param json
+     */
+    @PostMapping(value = "/getJsonData")
+    public void getJsonString(@RequestBody String json){
+        System.out.println(json);
     }
 
 }
