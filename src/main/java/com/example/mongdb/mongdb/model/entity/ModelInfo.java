@@ -42,5 +42,13 @@ public class ModelInfo implements Serializable {
      * sheetJson
      */
     private String sheetJson;
+    /**
+     * sheet的编号
+     */
+    private int sheetIndex;
+    /**
+     * 是否隐藏
+     */
+    private boolean isHide;
 
 }

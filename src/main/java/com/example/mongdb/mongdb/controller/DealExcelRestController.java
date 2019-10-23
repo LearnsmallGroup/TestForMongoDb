@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.example.mongdb.mongdb.model.entity.BaseObj;
+import com.example.mongdb.mongdb.model.entity.BaseObj2;
 import com.example.mongdb.mongdb.model.entity.ModelInfo;
 import com.example.mongdb.mongdb.service.IModelInfoService;
 import com.grapecity.documents.excel.*;
@@ -17,10 +18,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.multipart.support.StandardMultipartHttpServletRequest;
 
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.util.*;
 
@@ -71,26 +68,14 @@ public class DealExcelRestController {
      * @param code
      * @return
      */
-    @GetMapping(value = "/getModelSheetFile/{code}")
-    public Map<String,Object> getStringSheetJson(@PathVariable("code") String code) throws Exception {
+    @GetMapping(value = "/getModelSheetFile/{code}/{sheetName}")
+    public Map<String,Object> getStringSheetJson(@PathVariable("code") String code,@PathVariable("sheetName") String sheetName) throws Exception {
         Map<String,Object> map = new HashMap<>();
         Query query = new Query();
         query.addCriteria(Criteria.where("modelCode").is(code));
-        List<ModelInfo> mlist = modelInfoService.getByQuery(query);
-        Workbook workbook = new Workbook();
-        IWorksheets worksheets = workbook.getWorksheets();
-        int i = 0;
-        for(ModelInfo mfo : mlist){
-            if(i>0) {
-                worksheets.add();
-            }
-            IWorksheet nsheet = workbook.getWorksheets().get(i++);
-            nsheet.fromJson(mfo.getSheetJson());
-        }
-//        IWorksheet nsheet = workbook.getWorksheets().get(0);
-//        System.out.println(mlist.get(1).getSheetJson());
-//        nsheet.fromJson(mlist.get(7).getSheetJson());
-        Object parse = JSON.parse(workbook.toJson());
+        query.addCriteria(Criteria.where("modelName").is(sheetName));
+        ModelInfo model = modelInfoService.getOneByQuery(query);
+        Object parse = JSON.parse(model.getSheetJson());
         map.put("model",parse);
         return map;
     }
@@ -109,7 +94,10 @@ public class DealExcelRestController {
         query.addCriteria(Criteria.where("modelCode").is(code));
         ModelInfo oneByQuery = modelInfoService.getOneByQuery(query);
         InputStream file = modelInfoService.getFileById(oneByQuery.getWorkBookContentId());
-        Workbook workbook = new Workbook();
+
+//        String str = modelInfoService.getfileJson(file);
+
+//        Workbook workbook = new Workbook();
 ////        XlsxOpenOptions options = new XlsxOpenOptions();
 ////        options.setImportFlags(EnumSet.of(ImportFlags.Data,
 ////                ImportFlags.Formulas,
@@ -180,13 +168,60 @@ public class DealExcelRestController {
     }
 
     /**
+     * 获取空模板到前台
+     * @create by Kellach 2019年10月22日
+     * @param code 模板Code
+     * @return
+     * @throws Exception
+     */
+    @GetMapping("/getEmptyFile/{code}")
+    public Map<String,Object> getEmptyFile(@PathVariable("code") String code)throws Exception{
+        Map<String,Object> map = new HashMap<>();
+        Query query = new Query();
+        query.addCriteria(Criteria.where("modelCode").is(code));
+        ModelInfo oneByQuery = modelInfoService.getOneByQuery(query);
+        InputStream file = modelInfoService.getFileById(oneByQuery.getWorkBookContentId());
+        Workbook workbook = new Workbook();
+        Workbook result = new Workbook();
+
+        XlsxOpenOptions options = new XlsxOpenOptions();
+        options.setImportFlags(EnumSet.of(ImportFlags.Data,
+                ImportFlags.Formulas,
+                ImportFlags.Table,
+                ImportFlags.MergeArea,
+                ImportFlags.Style,
+                ImportFlags.ConditionalFormatting,
+                ImportFlags.DataValidation,
+                ImportFlags.PivotTable,
+                ImportFlags.Shapes));
+        workbook.open(file,options);
+//        String str = null;
+//        str = IOUtils.toString(file,"UTF-8");
+//        workbook.fromJson(str);
+
+        IWorksheets worksheets = workbook.getWorksheets();
+        int count = worksheets.getCount();
+        for(int i = 0;i<count;i++){
+            result.getWorksheets().add();
+            IWorksheet resultSheet = result.getWorksheets().get(i);
+            resultSheet.setName(worksheets.get(i).getName());
+            resultSheet.setIndex(i);
+            resultSheet.setVisible(worksheets.get(i).getVisible());
+        }
+        Object parse = JSON.parse(result.toJson());
+        map.put("model",parse);
+        System.out.println("返回成功！");
+        return map;
+    }
+
+    /**
      * 组装前台数据集
      * @create by Kellach 2019年9月30日
      * @return
      */
     private Object packageData(){
         List<BaseObj> zysh = new ArrayList<>();
-        List<BaseObj> xssp = new ArrayList<>();
+        List<BaseObj2> xssp = new ArrayList<>();
         List<BaseObj> lwsr = new ArrayList<>();
         for(int i =0;i<10;i++){
             BaseObj obj = new BaseObj();
@@ -195,8 +230,15 @@ public class DealExcelRestController {
             obj.setName("名称"+i);
             obj.setValue(Math.random()*1000+i);
             zysh.add(obj);
-            xssp.add(obj);
             lwsr.add(obj);
+        }
+        for(int i =0;i<10;i++){
+            BaseObj2 obj = new BaseObj2();
+            obj.setColA("名称"+i);
+            obj.setColB(Math.random()*1000+i);
+            obj.setColC(Math.random()*1000+i);
+            obj.setColD(Math.random()*1000+i);
+            xssp.add(obj);
         }
         Map<String,Object> map = new HashMap<String, Object>();
         map.put("zysh",zysh);
@@ -246,5 +288,23 @@ public class DealExcelRestController {
     public void getJsonString(@RequestBody String json){
         System.out.println(json);
     }
+
+    /**
+     * 获取GC拼接的workBook
+     * @create by Kellach 2019年10月23日
+     * @param code
+     * @return
+     * @throws Exception
+     */
+    @GetMapping("/getGCWb/{code}")
+    public Map<String,Object> getGCWb(@PathVariable("code") String code)throws Exception{
+        Map<String,Object> map = new HashMap<>();
+        String json = modelInfoService.getNewWorkBookByCode(code);
+        Object parse = JSON.parse(json);
+        map.put("model",parse);
+        System.out.println("获取后台拼接sheet执行结束");
+        return map;
+    }
+
 
 }

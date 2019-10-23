@@ -14,10 +14,6 @@ spring:
       database: store
       username: kellach
       password: kellach123
-  http:
-    multipart:
-      max-file-size: 50Mb
-      max-request-size: 50Mb
   #数据源配置
   datasource:
     url: jdbc:mysql://127.0.0.1:3306/risk_right?autoReconnect=true&useUnicode=true&characterEncoding=UTF-8&useOldAliasMetadataBehavior=true&rewriteBatchedStatements=true&failOverReadOnly=false

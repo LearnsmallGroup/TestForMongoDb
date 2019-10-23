@@ -4,6 +4,7 @@ import com.example.mongdb.mongdb.model.entity.ModelInfo;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.io.InputStream;
 
 /**
  * 模板Service
@@ -23,4 +24,18 @@ public interface IModelInfoService extends IBaseMDBService<ModelInfo> {
      * @param fileCode
      */
     void saveExcelBySheet(MultipartFile file,String fileCode) throws Exception;
+
+    /**
+     * 获取文件中的Json
+     * @param file
+     * @return
+     */
+    String getfileJson(InputStream file);
+    /**
+     * 获取后台完整的workBook
+     * @create by Kellach 2019年10月23日
+     * @param modelCode
+     * @return
+     */
+    String getNewWorkBookByCode(String modelCode);
 }

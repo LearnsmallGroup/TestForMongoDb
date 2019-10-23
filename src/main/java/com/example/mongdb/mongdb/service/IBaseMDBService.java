@@ -55,4 +55,5 @@ public interface IBaseMDBService<T> {
      * @return
      */
     T getOneByQuery(Query query);
+
 }
